@@ -177,7 +177,7 @@ bool CircleComp (Circle* a, Circle* b) {
 
 int main(){
     int i, t;
-    double a, b, st;
+    double a, b, st, sum;
     Curve* cur;
     Circle* circ;
     vector <Curve*> curves;
@@ -214,11 +214,11 @@ int main(){
         }
     }
     
-    //list of poits and derivatives
-    /*for (i = 0; i < 20; i++) {
+    cout << "list of poits and derivatives \n";
+    for (i = 0; i < 20; i++) {
         cout << "point: " << (*curves[i]).GetPoint(M_PI/4).Print(2) << 
         ", derivative: " << (*curves[i]).GetTangent(M_PI/4).Print(2) << "\n";
-    }*/
+    }
     
     cout << "circles before sorting: \n";
     for (i = 0; i < circles.size(); i++){
@@ -228,11 +228,13 @@ int main(){
     sort(circles.begin(), circles.end(), CircleComp);
     
     cout << "circles after sorting: \n";
+    sum = 0;
     for (i = 0; i < circles.size(); i++){
         cout << "circle " << i << ": radius = " << (*circles[i]).GetRad() << "\n";
+        sum += (*circles[i]).GetRad();
     }
     
-    cout << "size of curves: " << curves.size() << ", size of circles: " << circles.size() << "\n";
+    cout << "sum of radiuses: " << sum << "\n";
     curves.clear();
     circles.clear();
     return(0);
