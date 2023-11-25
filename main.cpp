@@ -1,77 +1,90 @@
-#include <chrono>
-#include <cstdlib>
-#include <iostream>
-#include <vector>
+// НЕрабочая версия программы, выдается ошибка
+//Ошибка компиляции:
+///exposed/submission/main.cpp: In constructor ‘StreamUntier::StreamUntier(std::istream&)’:
+///exposed/submission/main.cpp:26:14: error: ‘StreamUntier::main_stream_’ will be initialized after [-Werror=reorder]
+//   26 |     istream* main_stream_;
+//      |              ^~~~~~~~~~~~
+//compilation terminated due to -Wfatal-errors.
+//cc1plus: all warnings being treated as errors
+ 
 
 #include "log_duration.h"
 
+#include <iostream>
+
 using namespace std;
 
-vector<int> ReverseVector(const vector<int>& source_vector) {
-    vector<int> res;
-    for (int i : source_vector) {
-        res.insert(res.begin(), i);
-    }
-
-    return res;
-}
-
-int CountPops(const vector<int>& source_vector, int begin, int end) {
-    int res = 0;
-
-    for (int i = begin; i < end; ++i) {
-        if (source_vector[i]) {
-            ++res;
-        }
-    }
-
-    return res;
-}
-
-void AppendRandom(vector<int>& v, int n) {
-    for (int i = 0; i < n; ++i) {
-        // получаем случайное число с помощью функции rand.
-        // с помощью (rand() % 2) получим целое число в диапазоне 0..1.
-        // в C++ имеются более современные генераторы случайных чисел,
-        // но в данном уроке не будем их касаться
-        v.push_back(rand() % 2);
-    }
-}
-
-void Operate() {
+class StreamUntier {
+public:
+    // добавьте конструктор, деструктор
+    // и дополнительные поля класса при необходимости
+    StreamUntier() = default;
     
-    vector<int> random_bits;
-
-    // операция << для целых чисел это сдвиг всех бит в двоичной
-    // записи числа. Запишем с её помощью число 2 в степени 17 (131072)
-    static const int N = 1 << 17;
-
-    // заполним вектор случайными числами 0 и 1
+    StreamUntier(istream& stream_name):
+        main_stream_(&stream_name),
+        tied_before_(stream_name.tie(nullptr))
     {
-        const LogDuration dur("Append random"s);
-        AppendRandom(random_bits, N);
+       
+    }
+    
+    ~StreamUntier(){
+        (*main_stream_).tie(tied_before_);
     }
 
-    // перевернём вектор задом наперёд
-    vector<int> reversed_bits;
-    {
-        const LogDuration dur("Reverse"s);
-        reversed_bits = ReverseVector(random_bits);
-    }
-
-    // посчитаем процент единиц на начальных отрезках вектора
-
-    {
-        const LogDuration dur("Counting"s);
-        for (int i = 1, step = 1; i <= N; i += step, step *= 2) {
-            double rate = CountPops(reversed_bits, 0, i) * 100. / i;
-            cout << "After "s << i << " bits we found "s << rate << "% pops"s << endl;
-        }
-    }
-
-}
+private:
+    ostream* tied_before_;
+    istream* main_stream_;
+};
 
 int main() {
-    const LogDuration total_dur("Total"s);
-    Operate();
+    LOG_DURATION("\\n with tie"s);
+
+    StreamUntier guard(cin);
+    int i;
+    while (cin >> i) {
+        cout << i * i << "\n"s;
+    }
+
+    return 0;
+}
+
+// Рабочая версия
+
+#include "log_duration.h"
+
+#include <iostream>
+
+using namespace std;
+
+class StreamUntier {
+public:
+    // добавьте конструктор, деструктор
+    // и дополнительные поля класса при необходимости
+    StreamUntier() = default;
+    
+    StreamUntier(istream& stream_name):
+        tied_before_(stream_name.tie(nullptr))
+    {
+        main_stream_ = &stream_name;
+    }
+    
+    ~StreamUntier(){
+        (*main_stream_).tie(tied_before_);
+    }
+
+private:
+    ostream* tied_before_;
+    istream* main_stream_;
+};
+
+int main() {
+    LOG_DURATION("\\n with tie"s);
+
+    StreamUntier guard(cin);
+    int i;
+    while (cin >> i) {
+        cout << i * i << "\n"s;
+    }
+
+    return 0;
 }
