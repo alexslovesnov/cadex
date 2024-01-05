@@ -1,90 +1,97 @@
-// НЕрабочая версия программы, выдается ошибка
-//Ошибка компиляции:
-///exposed/submission/main.cpp: In constructor ‘StreamUntier::StreamUntier(std::istream&)’:
-///exposed/submission/main.cpp:26:14: error: ‘StreamUntier::main_stream_’ will be initialized after [-Werror=reorder]
-//   26 |     istream* main_stream_;
-//      |              ^~~~~~~~~~~~
-//compilation terminated due to -Wfatal-errors.
-//cc1plus: all warnings being treated as errors
- 
-
-#include "log_duration.h"
-
+#include <cassert>
 #include <iostream>
+#include <iterator>
+#include <numeric>
+#include <vector>
 
 using namespace std;
 
-class StreamUntier {
-public:
-    // добавьте конструктор, деструктор
-    // и дополнительные поля класса при необходимости
-    StreamUntier() = default;
-    
-    StreamUntier(istream& stream_name):
-        main_stream_(&stream_name),
-        tied_before_(stream_name.tie(nullptr))
-    {
-       
+template <typename RandomIt>
+void MakeJosephusPermutation(RandomIt first, RandomIt last, uint32_t step_size) {
+    //vector<typename RandomIt::value_type> pool(first, last);
+    vector<typename RandomIt::value_type> pool;
+    size_t pool_size = static_cast<size_t>(distance(first, last));
+    pool.reserve(pool_size);
+    for(auto it = first; it != last; ++it){
+        pool.push_back(move(*it));
     }
-    
-    ~StreamUntier(){
-        (*main_stream_).tie(tied_before_);
+    size_t cur_pos = 0;
+    while (!pool.empty()) {
+        //*(first++) = pool[cur_pos];
+        *(first++) = move(pool[cur_pos]);
+        pool.erase(pool.begin() + cur_pos);
+        if (pool.empty()) {
+            break;
+        }
+        cur_pos = (cur_pos + step_size - 1) % pool.size();
     }
-
-private:
-    ostream* tied_before_;
-    istream* main_stream_;
-};
-
-int main() {
-    LOG_DURATION("\\n with tie"s);
-
-    StreamUntier guard(cin);
-    int i;
-    while (cin >> i) {
-        cout << i * i << "\n"s;
-    }
-
-    return 0;
 }
 
-// Рабочая версия
+vector<int> MakeTestVector() {
+    vector<int> numbers(10);
+    iota(begin(numbers), end(numbers), 0);
+    return numbers;
+}
 
-#include "log_duration.h"
-
-#include <iostream>
-
-using namespace std;
-
-class StreamUntier {
-public:
-    // добавьте конструктор, деструктор
-    // и дополнительные поля класса при необходимости
-    StreamUntier() = default;
-    
-    StreamUntier(istream& stream_name):
-        tied_before_(stream_name.tie(nullptr))
+void TestIntVector() {
+    const vector<int> numbers = MakeTestVector();
     {
-        main_stream_ = &stream_name;
+        vector<int> numbers_copy = numbers;
+        MakeJosephusPermutation(begin(numbers_copy), end(numbers_copy), 1);
+        assert(numbers_copy == numbers);
     }
-    
-    ~StreamUntier(){
-        (*main_stream_).tie(tied_before_);
+    {
+        vector<int> numbers_copy = numbers;
+        MakeJosephusPermutation(begin(numbers_copy), end(numbers_copy), 3);
+        assert(numbers_copy == vector<int>({0, 3, 6, 9, 4, 8, 5, 2, 7, 1}));
     }
+}
 
-private:
-    ostream* tied_before_;
-    istream* main_stream_;
+// Это специальный тип, который поможет вам убедиться, что ваша реализация
+// функции MakeJosephusPermutation не выполняет копирование объектов.
+// Сейчас вы, возможно, не понимаете как он устроен, однако мы расскажем
+// об этом далее в нашем курсе
+
+struct NoncopyableInt {
+    int value;
+
+    NoncopyableInt(const NoncopyableInt&) = delete;
+    NoncopyableInt& operator=(const NoncopyableInt&) = delete;
+
+    NoncopyableInt(NoncopyableInt&&) = default;
+    NoncopyableInt& operator=(NoncopyableInt&&) = default;
 };
 
+bool operator==(const NoncopyableInt& lhs, const NoncopyableInt& rhs) {
+    return lhs.value == rhs.value;
+}
+
+ostream& operator<<(ostream& os, const NoncopyableInt& v) {
+    return os << v.value;
+}
+
+void TestAvoidsCopying() {
+    vector<NoncopyableInt> numbers;
+    numbers.push_back({1});
+    numbers.push_back({2});
+    numbers.push_back({3});
+    numbers.push_back({4});
+    numbers.push_back({5});
+
+    MakeJosephusPermutation(begin(numbers), end(numbers), 2);
+
+    vector<NoncopyableInt> expected;
+    expected.push_back({1});
+    expected.push_back({3});
+    expected.push_back({5});
+    expected.push_back({4});
+    expected.push_back({2});
+
+    assert(numbers == expected);
+}
+
 int main() {
-    LOG_DURATION("\\n with tie"s);
-
-    StreamUntier guard(cin);
-    int i;
-    while (cin >> i) {
-        cout << i * i << "\n"s;
-    }
-
+    TestIntVector();
+    TestAvoidsCopying();
     return 0;
 }
