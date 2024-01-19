@@ -1,97 +1,44 @@
-#include <cassert>
 #include <iostream>
-#include <iterator>
-#include <numeric>
-#include <vector>
+#include <unordered_map>
+#include <unordered_set>
+#include <string>
 
 using namespace std;
 
-template <typename RandomIt>
-void MakeJosephusPermutation(RandomIt first, RandomIt last, uint32_t step_size) {
-    //vector<typename RandomIt::value_type> pool(first, last);
-    vector<typename RandomIt::value_type> pool;
-    size_t pool_size = static_cast<size_t>(distance(first, last));
-    pool.reserve(pool_size);
-    for(auto it = first; it != last; ++it){
-        pool.push_back(move(*it));
-    }
-    size_t cur_pos = 0;
-    while (!pool.empty()) {
-        //*(first++) = pool[cur_pos];
-        *(first++) = move(pool[cur_pos]);
-        pool.erase(pool.begin() + cur_pos);
-        if (pool.empty()) {
-            break;
+template <typename Hash>
+int FindCollisions(const Hash& hasher, istream& text) {
+    // место для вашей реализации
+    int res = 0;
+    unordered_map<size_t, unordered_set<string>> hash_results;
+    string word;
+    while(text >> word){        
+        size_t res = hasher(word);
+        bool is_hash = (hash_results.count(res) > 0);
+        if(!is_hash){ 
+            hash_results[res].insert(move(word));
+            continue;
         }
-        cur_pos = (cur_pos + step_size - 1) % pool.size();
+        auto hash_size = hash_results.at(res).size();
+        hash_results.at(res).insert(move(word));
+        res += hash_results.at(res).size() - hash_size;
     }
+    return res;
 }
 
-vector<int> MakeTestVector() {
-    vector<int> numbers(10);
-    iota(begin(numbers), end(numbers), 0);
-    return numbers;
-}
-
-void TestIntVector() {
-    const vector<int> numbers = MakeTestVector();
-    {
-        vector<int> numbers_copy = numbers;
-        MakeJosephusPermutation(begin(numbers_copy), end(numbers_copy), 1);
-        assert(numbers_copy == numbers);
+// Это плохой хешер. Его можно использовать для тестирования.
+// Подумайте, в чём его недостаток
+struct HasherDummy {
+    size_t operator() (const string& str) const {
+        size_t res = 0;
+        for (char c : str) {
+            res += static_cast<size_t>(c);
+        }
+        return res;
     }
-    {
-        vector<int> numbers_copy = numbers;
-        MakeJosephusPermutation(begin(numbers_copy), end(numbers_copy), 3);
-        assert(numbers_copy == vector<int>({0, 3, 6, 9, 4, 8, 5, 2, 7, 1}));
-    }
-}
-
-// Это специальный тип, который поможет вам убедиться, что ваша реализация
-// функции MakeJosephusPermutation не выполняет копирование объектов.
-// Сейчас вы, возможно, не понимаете как он устроен, однако мы расскажем
-// об этом далее в нашем курсе
-
-struct NoncopyableInt {
-    int value;
-
-    NoncopyableInt(const NoncopyableInt&) = delete;
-    NoncopyableInt& operator=(const NoncopyableInt&) = delete;
-
-    NoncopyableInt(NoncopyableInt&&) = default;
-    NoncopyableInt& operator=(NoncopyableInt&&) = default;
 };
 
-bool operator==(const NoncopyableInt& lhs, const NoncopyableInt& rhs) {
-    return lhs.value == rhs.value;
-}
-
-ostream& operator<<(ostream& os, const NoncopyableInt& v) {
-    return os << v.value;
-}
-
-void TestAvoidsCopying() {
-    vector<NoncopyableInt> numbers;
-    numbers.push_back({1});
-    numbers.push_back({2});
-    numbers.push_back({3});
-    numbers.push_back({4});
-    numbers.push_back({5});
-
-    MakeJosephusPermutation(begin(numbers), end(numbers), 2);
-
-    vector<NoncopyableInt> expected;
-    expected.push_back({1});
-    expected.push_back({3});
-    expected.push_back({5});
-    expected.push_back({4});
-    expected.push_back({2});
-
-    assert(numbers == expected);
-}
-
 int main() {
-    TestIntVector();
-    TestAvoidsCopying();
-    return 0;
+    hash<string> str_hasher;
+    int collisions = FindCollisions(str_hasher, cin);
+    cout << "Found collisions: "s << collisions << endl;
 }
